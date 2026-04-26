@@ -19,29 +19,48 @@ export function buildAiImageUrl({ toyName, size = 720, seed }: AiImageOptions): 
     height: String(size),
     nologo: 'true',
     safe: 'true',
-    model: 'flux',
   });
   if (seed != null) params.set('seed', String(seed));
   return `${ENDPOINT}${encodeURIComponent(prompt)}?${params.toString()}`;
 }
 
-/**
- * Fetches the generated image and converts it to a data URL so it can be
- * stored in IndexedDB without re-hitting the network later.
- */
-export async function generateAiToyImage(opts: AiImageOptions): Promise<string> {
-  const url = buildAiImageUrl(opts);
-  const res = await fetch(url, { mode: 'cors' });
-  if (!res.ok) throw new Error(`Image service returned ${res.status}`);
-  const blob = await res.blob();
-  return await blobToDataUrl(blob);
+export interface AiImageResult {
+  /** Either a data: URL (canvas conversion succeeded) or the original https URL. */
+  src: string;
+  /** True when we got a usable PNG data URL we can persist offline. */
+  embedded: boolean;
 }
 
-function blobToDataUrl(blob: Blob): Promise<string> {
+/**
+ * Loads the generated image via an <img> element (which sends browser-friendly
+ * headers and avoids the 403 that direct fetch sometimes hits) and tries to
+ * convert it to a PNG data URL via canvas. Falls back to returning the raw
+ * URL if the canvas is tainted (CORS denied).
+ */
+export async function generateAiToyImage(opts: AiImageOptions): Promise<AiImageResult> {
+  const url = buildAiImageUrl(opts);
+  const img = await loadImage(url);
+  const size = opts.size ?? 720;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas unavailable');
+    ctx.drawImage(img, 0, 0, size, size);
+    return { src: canvas.toDataURL('image/png'), embedded: true };
+  } catch {
+    return { src: url, embedded: false };
+  }
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = reject;
-    r.readAsDataURL(blob);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.referrerPolicy = 'no-referrer';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Image failed to load'));
+    img.src = src;
   });
 }

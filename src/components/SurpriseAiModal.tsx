@@ -41,8 +41,8 @@ export function SurpriseAiModal({ open, onClose }: Props) {
     sounds.whirr();
     try {
       const seed = Math.floor(Math.random() * 1_000_000);
-      const dataUrl = await generateAiToyImage({ toyName: safety.cleaned, seed });
-      setImage(dataUrl);
+      const result = await generateAiToyImage({ toyName: safety.cleaned, seed });
+      setImage(result.src);
       setSavedName(safety.cleaned);
       setStage('reveal');
       sounds.tada();
