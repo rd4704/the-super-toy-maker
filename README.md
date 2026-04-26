@@ -1,17 +1,21 @@
 # 🧸 The Super Toy Maker
 
-A colorful, kid-friendly web app where children build their own toys by dragging
-parts into a magical machine, give the toy a name, and watch it come to life
-with animations, sounds, and sparkles. Saved toys live in a personal library.
+A colorful, kid-friendly web app where children build their own toys —
+either by assembling parts in a magical machine, or by typing a name and
+letting AI draw it. Toys are saved to a personal library that lives in the
+browser, no account required.
 
 ## ✨ Features
 
-- **3-panel layout**: Asset shelf · Toy Maker Machine · Output & Library
-- **Drag & drop** parts onto the machine canvas (powered by `@dnd-kit`)
+- **Two ways to make a toy**:
+  - 🛠️ **Build mode**: drag *or* tap parts into the machine, then animate them with a name
+  - 🎲 **Surprise Me (AI)**: type a toy name and a free image API draws it for you
+- **Tap-to-place** + **drag-and-drop** — pick whichever feels easier (great for tiny fingers)
 - **Move, rotate, scale, delete** parts after placement
-- **Animated assembly** sequence with steam, gears, confetti, and sound effects
-- **Composite image generator** — turns the placed parts + name into a saveable PNG
-- **Local library** stored in IndexedDB (Dexie) — no account or backend needed
+- **Animated assembly** sequence with steam, gears, confetti, and silly sounds
+- **Local library** — clickable cards open a detail view with download & delete
+- **Mobile-first responsive layout** with natural page scroll on phones
+- **Procedural sound effects + cheerful background music** with a global mute toggle
 - **PWA-ready** — installable on phone/tablet/desktop, works offline
 
 ## 🛠 Tech stack
@@ -19,13 +23,15 @@ with animations, sounds, and sparkles. Saved toys live in a personal library.
 | Concern | Choice |
 | --- | --- |
 | Framework | React 18 + Vite + TypeScript |
-| Styling | Tailwind CSS (custom candy palette) |
-| Drag & drop | `@dnd-kit/core` |
-| Animation | Framer Motion + Tailwind keyframes |
-| Audio | Howler.js (procedurally generated chiptune beeps, no network needed) |
+| Styling | Tailwind CSS (custom candy palette + keyframes) |
+| Drag & drop | `@dnd-kit/core` + `snapCenterToCursor` modifier |
+| Animation | Framer Motion |
+| Audio | Howler.js + a tiny in-house WAV synth (no audio files shipped) |
 | State | Zustand |
 | Storage | Dexie (IndexedDB) |
+| AI image | [Pollinations.ai](https://image.pollinations.ai) (free, no key) |
 | PWA | `vite-plugin-pwa` |
+| Hosting | Vercel (with a same-origin rewrite proxy for the AI API) |
 | Assets | Inline hand-rolled SVGs (CC0, ship anywhere) |
 
 ## 🚀 Getting started
@@ -44,42 +50,61 @@ npm run build
 npm run preview
 ```
 
+The dev and preview servers proxy `/ai-image/*` to `image.pollinations.ai`
+so the browser sees the API as same-origin (avoids the upstream Cloudflare
+Turnstile check).
+
 ## 🧒 Kid-safety choices
 
-- **No network calls required.** Sounds are generated in-browser; assets are
-  bundled SVGs; image generation runs locally.
 - **No login, no analytics, no third-party trackers.**
-- **Composite-based "Make" step** (deterministic, no AI surprises). An optional
-  AI mode using a free image API (e.g., Pollinations.ai) can be added later
-  with a strict allow-list/profanity filter on the toy name.
+- **AI requests are proxied through our own origin**, so no Referer header
+  leaks to the upstream image API and toy names stay private to the request.
+- **Kid-safe prompt template + word filter**: all AI prompts are wrapped
+  inside a fixed *"a cute colorful toy named X, pixar style, ..."* template,
+  and the toy name is run through a profanity / adult-content / character
+  allow-list before any network call.
+- **`safe=true`** is passed to the AI endpoint to enable strict NSFW filtering.
+- Apart from the optional AI generation, everything else (sounds, parts,
+  composite image, library) runs locally in the browser.
 
 ## 🗂 Project structure
 
 ```
 src/
-  App.tsx                 # 3-panel layout + DnD context
-  main.tsx                # React entry
-  styles.css              # Tailwind + custom keyframes
+  App.tsx                       # Layout + DnD context + AI modal mount
+  main.tsx                      # React entry
+  styles.css                    # Tailwind + custom keyframes
   assets/
-    catalog.tsx           # Inline SVG asset library + categories
-    AssetSvg.tsx          # Renders an asset by id
+    catalog.tsx                 # Inline SVG asset library + categories
+    AssetSvg.tsx                # Renders an asset by id
   components/
-    AssetsPanel.tsx       # Left: scrollable shelf, draggable items
-    Machine.tsx           # Middle: drop zone, gears, placed parts
-    Output.tsx            # Right: name input, Make button, reveal, library
+    AssetsPanel.tsx             # Parts shelf (drag + tap-to-arm)
+    Machine.tsx                 # Drop zone, gears, placed parts, tap-to-place
+    Output.tsx                  # Name input, Make button, library, detail modal
+    SurpriseAiModal.tsx         # AI Surprise Me flow (input → loading → reveal)
   state/
-    machine.ts            # Zustand store of placed parts
-    db.ts                 # Dexie database for the saved-toys library
+    machine.ts                  # Zustand store (parts, selected, armedAssetId, …)
+    db.ts                       # Dexie database for the saved-toys library
   sound/
-    sounds.ts             # Howler-powered procedural SFX
+    sounds.ts                   # Howler-powered procedural SFX + music
   utils/
-    render.tsx            # Composites parts + name into a PNG dataURL
+    render.tsx                  # Composites SVG parts + name into a PNG dataURL
+    surprise.ts                 # Random local toy builder + name generator
+    ai.ts                       # Builds the Pollinations image URL (relative)
+    safety.ts                   # Kid-safe word filter for AI prompts
 ```
 
-## 📱 Going mobile
+## 📱 Mobile UX
 
-This is a standard Vite/React app — wrap with **Capacitor** to ship to iOS &
-Android stores using the same code:
+The app adapts at the `md` breakpoint:
+
+- **Phones**: natural page scroll, vertical stack (`Machine → Parts → Output`),
+  big Surprise Me CTA right under the header, larger tap targets, 3-column
+  parts grid.
+- **Desktop**: fixed 3-panel layout (`Parts | Machine | Output`) using `100dvh`,
+  no page-level scroll.
+
+To ship to iOS & Android stores, wrap with **Capacitor**:
 
 ```bash
 npm i -D @capacitor/cli @capacitor/core @capacitor/ios @capacitor/android
@@ -89,22 +114,40 @@ npm run build && npx cap add ios && npx cap add android && npx cap sync
 
 ## 🧩 Add more parts
 
-Open `src/assets/catalog.tsx` and append to the `ASSETS` array. Each asset is an
-inline SVG with a category, so it appears automatically in the right tab.
+Open `src/assets/catalog.tsx` and append to the `ASSETS` array. Each asset is
+inline SVG with a `category`, so it appears automatically in the right tab.
+The 6 built-in categories are `head`, `body`, `wheels`, `wings`, `eyes`, `extra`.
 
-## 🪄 Optional: enable AI image generation
+## 🪄 The Surprise Me (AI) flow
 
-Pollinations.ai exposes a free, no-key endpoint. To add a "Surprise me" button:
+1. User clicks **🎲 Surprise Me**, types a toy name.
+2. Name is validated by `src/utils/safety.ts` (length, allowed characters,
+   profanity/adult-theme deny-list).
+3. `src/utils/ai.ts` builds a relative URL like
+   `/ai-image/<encoded-prompt>?width=720&height=720&safe=true&seed=<rand>`.
+4. Vite (dev/preview) and Vercel (prod) rewrite that path server-side to
+   `https://image.pollinations.ai/prompt/...`. This same-origin hop avoids
+   the upstream Cloudflare Turnstile token requirement.
+5. The result is rendered in an `<img>` and saved into the same Dexie
+   library used by the build-mode toys.
 
-```ts
-const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-  `${toyName}, cute colorful toy, pixar style, white background`
-)}?width=720&height=720&nologo=true`;
+If the AI API returns an error for a particular prompt+seed combo, the modal
+silently retries with a fresh seed up to 3 times.
+
+## ☁️ Deploying to Vercel
+
+`vercel.json` already configures:
+
+- SPA rewrites (everything except `assets/`, `sw.js`, etc. → `index.html`)
+- The `/ai-image/*` rewrite to Pollinations
+- Long-cache headers for hashed assets, no-cache for `sw.js`
+
+```bash
+vercel --prod
 ```
-
-⚠️ Always sanitize the toy name and apply a kid-safe word filter before
-sending to any external API.
 
 ## 📜 License
 
 MIT for the code. Bundled SVG assets in this repo are original / CC0.
+AI-generated images are produced by [Pollinations.ai](https://pollinations.ai)
+under their own terms.
