@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/assets/assetsvg.tsx","./src/assets/catalog.tsx","./src/components/assetspanel.tsx","./src/components/machine.tsx","./src/components/output.tsx","./src/sound/sounds.ts","./src/state/db.ts","./src/state/machine.ts","./src/utils/render.tsx"],"version":"5.9.3"}
