@@ -6,7 +6,8 @@
   "installCommand": "npm install",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/((?!assets/|sw\\.js|workbox-.*|registerSW\\.js|manifest\\.webmanifest|favicon\\.svg).*)", "destination": "/index.html" }
+    { "source": "/ai-image/(.*)", "destination": "https://image.pollinations.ai/prompt/$1" },
+    { "source": "/((?!assets/|ai-image/|sw\\.js|workbox-.*|registerSW\\.js|manifest\\.webmanifest|favicon\\.svg).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { sounds } from '../sound/sounds';
 import { db } from '../state/db';
-import { generateAiToyImage } from '../utils/ai';
+import { buildAiImageUrl } from '../utils/ai';
 import { checkToyName } from '../utils/safety';
 
 interface Props {
@@ -18,6 +18,8 @@ export function SurpriseAiModal({ open, onClose }: Props) {
   const [image, setImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedName, setSavedName] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  const MAX_ATTEMPTS = 3;
 
   useEffect(() => {
     if (!open) {
@@ -26,10 +28,20 @@ export function SurpriseAiModal({ open, onClose }: Props) {
       setImage(null);
       setError(null);
       setSavedName('');
+      setAttempt(0);
     }
   }, [open]);
 
-  const generate = async () => {
+  const startGeneration = (toyName: string, attemptNum: number) => {
+    const seed = Math.floor(Math.random() * 1_000_000);
+    const url = buildAiImageUrl({ toyName, seed });
+    setImage(url);
+    setSavedName(toyName);
+    setAttempt(attemptNum);
+    setStage('loading');
+  };
+
+  const generate = () => {
     const safety = checkToyName(name);
     if (!safety.ok) {
       setError(safety.reason ?? 'Please pick a different name.');
@@ -37,21 +49,28 @@ export function SurpriseAiModal({ open, onClose }: Props) {
       return;
     }
     setError(null);
-    setStage('loading');
     sounds.whirr();
-    try {
-      const seed = Math.floor(Math.random() * 1_000_000);
-      const result = await generateAiToyImage({ toyName: safety.cleaned, seed });
-      setImage(result.src);
-      setSavedName(safety.cleaned);
-      setStage('reveal');
-      sounds.tada();
-    } catch (e) {
-      console.error(e);
-      setError('The toy magic didn\'t work. Check your internet and try again!');
-      setStage('error');
-      sounds.delete();
+    startGeneration(safety.cleaned, 1);
+  };
+
+  const onImageLoaded = () => {
+    if (stage !== 'loading') return;
+    setStage('reveal');
+    sounds.tada();
+  };
+
+  const onImageFailed = () => {
+    if (stage !== 'loading') return;
+    if (attempt < MAX_ATTEMPTS) {
+      // Retry with a new seed — Pollinations 500s on certain prompt+seed combos.
+      startGeneration(savedName, attempt + 1);
+      return;
     }
+    setError(
+      "Couldn't reach the toy magic after a few tries. Check your internet or try a different name!",
+    );
+    setStage('error');
+    sounds.delete();
   };
 
   const save = async () => {
@@ -139,14 +158,30 @@ export function SurpriseAiModal({ open, onClose }: Props) {
                 <p className="font-display text-candy-pink text-lg">
                   Cooking up your toy...
                 </p>
-                <p className="text-xs text-amber-900/60">(this can take 5–15 seconds)</p>
+                <p className="text-xs text-amber-900/60 text-center px-4">
+                  This can take up to a minute the first time. Hang tight! ✨
+                </p>
+                {image && (
+                  <img
+                    key={image}
+                    src={image}
+                    alt=""
+                    onLoad={onImageLoaded}
+                    onError={onImageFailed}
+                    style={{ display: 'none' }}
+                  />
+                )}
               </div>
             )}
 
             {stage === 'reveal' && image && (
               <div className="flex flex-col gap-3">
                 <div className="rounded-2xl overflow-hidden border-4 border-candy-green/40 aspect-square bg-candy-cream">
-                  <img src={image} alt={savedName} className="w-full h-full object-cover" />
+                  <img
+                    src={image}
+                    alt={savedName}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <p className="text-center font-display text-xl text-candy-green">
                   {savedName}
