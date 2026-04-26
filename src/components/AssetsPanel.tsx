@@ -14,14 +14,20 @@ function DraggableAsset({ asset }: { asset: AssetDef }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      type="button"
       onMouseDown={() => sounds.pickup()}
+      onDragStart={(e) => e.preventDefault()}
+      onContextMenu={(e) => e.preventDefault()}
       title={asset.name}
+      style={{ touchAction: 'none' }}
       className={`group relative aspect-square rounded-2xl bg-white border-4 border-candy-pink/40 shadow-pop p-2 flex items-center justify-center transition-transform ${
         isDragging ? 'opacity-30' : 'hover:-translate-y-1 hover:rotate-2'
       }`}
     >
-      <AssetSvg asset={asset} size={Math.min(72, asset.width)} />
-      <span className="absolute bottom-0 left-0 right-0 text-[10px] font-display text-candy-pink/80 pb-0.5">
+      <div className="absolute inset-2 flex items-center justify-center pointer-events-none">
+        <AssetSvg asset={asset} size={Math.min(72, asset.width)} />
+      </div>
+      <span className="absolute bottom-0 left-0 right-0 text-[10px] font-display text-candy-pink/80 pb-0.5 pointer-events-none">
         {asset.name}
       </span>
     </button>

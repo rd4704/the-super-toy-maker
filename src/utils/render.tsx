@@ -6,11 +6,10 @@ import { AssetSvg } from '../assets/AssetSvg';
 const SIZE = 720;
 
 /**
- * Composites the placed parts into a single PNG dataURL with the toy name
- * as a label and a sparkly frame. Fully offline, deterministic, kid-safe.
+ * Composites the placed SVG parts into a single PNG dataURL with the toy's
+ * name plate and a sparkly frame. Fully offline, deterministic, kid-safe.
  */
 export async function renderToyToDataUrl(parts: PlacedPart[], name: string): Promise<string> {
-  // Build an SVG document containing all parts in their canvas positions.
   const partsSvg = parts
     .slice()
     .sort((a, b) => a.z - b.z)
@@ -19,9 +18,10 @@ export async function renderToyToDataUrl(parts: PlacedPart[], name: string): Pro
       if (!asset) return '';
       const cx = p.x * SIZE;
       const cy = p.y * SIZE;
+      // Match on-screen visual size: machine canvas is ~520px, so up-scale.
+      const scale = (SIZE / 520) * p.scale;
       const inner = renderToString(<AssetSvg asset={asset} />);
-      // The AssetSvg outputs a full <svg>; wrap with a transform group at correct position.
-      return `<g transform="translate(${cx} ${cy}) rotate(${p.rotation}) scale(${p.scale}) translate(${
+      return `<g transform="translate(${cx} ${cy}) rotate(${p.rotation}) scale(${scale}) translate(${
         -asset.width / 2
       } ${-asset.height / 2})">${stripSvgWrapper(inner)}</g>`;
     })
@@ -67,7 +67,6 @@ function sparkles() {
 }
 
 function stripSvgWrapper(svg: string): string {
-  // react-dom/server returns "<svg ...>...</svg>" — extract inner content.
   return svg.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
 }
 

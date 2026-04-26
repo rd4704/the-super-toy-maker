@@ -16,12 +16,14 @@ import { useMachine } from './state/machine';
 import { sounds } from './sound/sounds';
 import { getAsset } from './assets/catalog';
 import { AssetSvg } from './assets/AssetSvg';
+import { SurpriseAiModal } from './components/SurpriseAiModal';
 
 export default function App() {
   const addPart = useMachine((s) => s.addPart);
   const [activeAssetId, setActiveAssetId] = useState<string | null>(null);
   const [muted, setMutedState] = useState(false);
   const [musicStarted, setMusicStarted] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -119,6 +121,16 @@ export default function App() {
               <span className="animate-sparkle [animation-delay:0.8s]">💫</span>
             </div>
             <button
+              onClick={() => {
+                sounds.giggle();
+                setAiOpen(true);
+              }}
+              title="Type a name and AI will draw your toy!"
+              className="px-4 py-2 rounded-full bg-candy-yellow text-amber-900 border-4 border-amber-700/40 font-display shadow-pop hover:scale-105 active:scale-95 transition animate-wiggle"
+            >
+              🎲 Surprise Me!
+            </button>
+            <button
               onClick={toggleMute}
               title={muted ? 'Unmute' : 'Mute'}
               className="px-3 py-2 rounded-full bg-white border-2 border-candy-pink/40 text-candy-pink font-display shadow-pop hover:scale-105 active:scale-95 transition"
@@ -167,6 +179,8 @@ export default function App() {
           </div>
         ) : null}
       </DragOverlay>
+
+      <SurpriseAiModal open={aiOpen} onClose={() => setAiOpen(false)} />
     </DndContext>
   );
 }
