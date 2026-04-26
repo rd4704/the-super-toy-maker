@@ -17,6 +17,7 @@ export function Output() {
   const [stage, setStage] = useState<Stage>('idle');
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [confetti, setConfetti] = useState(false);
+  const [openToy, setOpenToy] = useState<SavedToy | null>(null);
 
   const savedToys = useLiveQuery(
     () => db.toys.orderBy('createdAt').reverse().limit(20).toArray(),
@@ -177,7 +178,7 @@ export function Output() {
           {savedToys && savedToys.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
               {savedToys.map((t) => (
-                <LibraryCard key={t.id} toy={t} />
+                <LibraryCard key={t.id} toy={t} onOpen={setOpenToy} />
               ))}
             </div>
           ) : (
@@ -187,25 +188,123 @@ export function Output() {
           )}
         </div>
       </div>
+
+      <ToyDetailModal toy={openToy} onClose={() => setOpenToy(null)} />
     </div>
   );
 }
 
-function LibraryCard({ toy }: { toy: SavedToy }) {
+function LibraryCard({ toy, onOpen }: { toy: SavedToy; onOpen: (t: SavedToy) => void }) {
   return (
-    <div className="relative group bg-white rounded-xl border-2 border-candy-green/30 p-1 shadow-pop">
-      <img src={toy.thumbnail} alt={toy.name} className="w-full aspect-square object-contain" />
+    <button
+      type="button"
+      onClick={() => {
+        sounds.click();
+        onOpen(toy);
+      }}
+      className="relative group bg-white rounded-xl border-2 border-candy-green/30 p-1 shadow-pop text-left hover:scale-[1.04] active:scale-95 transition focus:outline-none focus:ring-2 focus:ring-candy-green"
+      title={`Open ${toy.name}`}
+    >
+      <img src={toy.thumbnail} alt={toy.name} className="w-full aspect-square object-contain pointer-events-none" />
       <p className="text-[10px] font-display text-center text-candy-green/80 truncate">
         {toy.name}
       </p>
-      <button
-        onClick={() => toy.id != null && db.toys.delete(toy.id)}
-        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-candy-pink text-white text-[10px] opacity-0 group-hover:opacity-100 transition"
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (toy.id != null) {
+            sounds.delete();
+            db.toys.delete(toy.id);
+          }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.stopPropagation();
+            if (toy.id != null) {
+              sounds.delete();
+              db.toys.delete(toy.id);
+            }
+          }
+        }}
+        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-candy-pink text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
         title="Delete"
       >
         ✕
-      </button>
-    </div>
+      </span>
+    </button>
+  );
+}
+
+function ToyDetailModal({ toy, onClose }: { toy: SavedToy | null; onClose: () => void }) {
+  return (
+    <AnimatePresence>
+      {toy && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="w-full max-w-lg bg-white rounded-3xl border-4 border-candy-green shadow-toy p-5 relative"
+            initial={{ scale: 0.85, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.85, y: 20 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute top-3 right-3 w-9 h-9 rounded-full bg-candy-pink text-white text-lg font-bold shadow-pop hover:scale-110 active:scale-95 transition"
+            >
+              ✕
+            </button>
+
+            <h2 className="font-display text-2xl text-candy-green text-center mb-3 pr-8">
+              🧸 {toy.name}
+            </h2>
+
+            <div className="rounded-2xl overflow-hidden border-4 border-candy-green/40 aspect-square bg-candy-cream mb-4">
+              <img
+                src={toy.thumbnail}
+                alt={toy.name}
+                className="w-full h-full object-contain animate-bob"
+              />
+            </div>
+
+            <p className="text-xs text-amber-900/60 font-display text-center mb-3">
+              Saved {new Date(toy.createdAt).toLocaleDateString()}
+            </p>
+
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href={toy.thumbnail}
+                download={`${toy.name.replace(/[^a-z0-9-_]+/gi, '_')}.png`}
+                onClick={() => sounds.sparkle()}
+                className="py-3 rounded-2xl bg-candy-yellow text-amber-900 border-4 border-amber-700/40 font-display shadow-pop hover:scale-[1.02] active:scale-95 transition text-center"
+              >
+                ⬇️ Download
+              </a>
+              <button
+                onClick={() => {
+                  if (toy.id != null) {
+                    sounds.delete();
+                    db.toys.delete(toy.id);
+                    onClose();
+                  }
+                }}
+                className="py-3 rounded-2xl bg-white text-candy-pink border-4 border-candy-pink font-display shadow-pop hover:scale-[1.02] active:scale-95 transition"
+              >
+                🗑️ Delete
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
