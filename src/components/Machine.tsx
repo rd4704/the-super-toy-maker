@@ -128,31 +128,67 @@ export function Machine() {
   const isAssembling = useMachine((s) => s.isAssembling);
   const selectPart = useMachine((s) => s.selectPart);
   const clear = useMachine((s) => s.clear);
+  const armedAssetId = useMachine((s) => s.armedAssetId);
+  const armAsset = useMachine((s) => s.armAsset);
+  const addPart = useMachine((s) => s.addPart);
 
   const setRefs = (el: HTMLDivElement | null) => {
     machineRef.current = el;
     setDropRef(el);
   };
 
+  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isAssembling) return;
+    const rect = machineRef.current?.getBoundingClientRect();
+    if (armedAssetId && rect) {
+      const x = (e.clientX - rect.left) / rect.width;
+      const y = (e.clientY - rect.top) / rect.height;
+      addPart(armedAssetId, clamp01(x), clamp01(y));
+      armAsset(null);
+      sounds.boing();
+      return;
+    }
+    selectPart(null);
+  };
+
   return (
-    <div className="h-full flex flex-col bg-white/70 backdrop-blur-md rounded-3xl border-4 border-candy-blue shadow-toy p-3">
-      <h2 className="font-display text-2xl text-candy-blue text-center mb-2">
+    <div className="h-full flex flex-col bg-white/70 backdrop-blur-md rounded-3xl border-4 border-candy-blue shadow-toy p-3 min-h-0">
+      <h2 className="font-display text-xl md:text-2xl text-candy-blue text-center mb-2">
         🛠️ Toy Maker Machine
       </h2>
 
-      <div className="flex-1 flex items-center justify-center">
-        <div className="relative" style={{ width: 'min(100%, 540px)', aspectRatio: '1 / 1' }}>
-          <Gear className="absolute -top-3 -left-3 w-14 h-14 text-candy-pink animate-spinSlow" />
-          <Gear className="absolute -top-2 -right-4 w-10 h-10 text-candy-yellow animate-spinSlow [animation-direction:reverse]" />
-          <Gear className="absolute -bottom-3 -left-4 w-10 h-10 text-candy-green animate-spinSlow [animation-direction:reverse]" />
-          <Gear className="absolute -bottom-3 -right-3 w-14 h-14 text-candy-purple animate-spinSlow" />
+      {armedAssetId && (
+        <div className="mb-2 flex items-center justify-center gap-2 bg-candy-pink/10 border-2 border-candy-pink/40 rounded-full px-3 py-1.5 text-xs md:text-sm font-display text-candy-pink animate-wiggle">
+          <span>👆 Tap inside the machine to drop the part!</span>
+          <button
+            onClick={() => {
+              armAsset(null);
+              sounds.bloop();
+            }}
+            className="underline"
+          >
+            cancel
+          </button>
+        </div>
+      )}
+
+      <div className="flex-1 flex items-center justify-center min-h-0">
+        <div
+          className="relative w-full"
+          style={{ maxWidth: 540, aspectRatio: '1 / 1' }}
+        >
+          <Gear className="absolute -top-3 -left-3 w-12 h-12 md:w-14 md:h-14 text-candy-pink animate-spinSlow" />
+          <Gear className="absolute -top-2 -right-4 w-9 h-9 md:w-10 md:h-10 text-candy-yellow animate-spinSlow [animation-direction:reverse]" />
+          <Gear className="absolute -bottom-3 -left-4 w-9 h-9 md:w-10 md:h-10 text-candy-green animate-spinSlow [animation-direction:reverse]" />
+          <Gear className="absolute -bottom-3 -right-3 w-12 h-12 md:w-14 md:h-14 text-candy-purple animate-spinSlow" />
 
           <div
             ref={setRefs}
-            onClick={() => selectPart(null)}
+            onClick={handleCanvasClick}
             className={`relative w-full h-full rounded-[36px] border-[6px] bg-gradient-to-br from-candy-cream to-white overflow-hidden ${
-              isOver ? 'border-candy-pink drop-pulse' : 'border-candy-blue/40'
+              isOver || armedAssetId ? 'border-candy-pink drop-pulse' : 'border-candy-blue/40'
             } ${isAssembling ? 'animate-wiggle' : ''}`}
+            style={{ cursor: armedAssetId ? 'crosshair' : 'default' }}
           >
             <div
               className="absolute inset-0 opacity-30"
@@ -169,9 +205,9 @@ export function Machine() {
             </AnimatePresence>
 
             {parts.length === 0 && !isAssembling && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-candy-blue/50 pointer-events-none">
-                <div className="text-6xl mb-2">⬇️</div>
-                <p className="font-display text-xl">Drop parts here!</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-candy-blue/50 pointer-events-none px-4 text-center">
+                <div className="text-5xl md:text-6xl mb-2">👇</div>
+                <p className="font-display text-base md:text-xl">Tap or drop parts here!</p>
               </div>
             )}
 

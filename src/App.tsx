@@ -100,22 +100,22 @@ export default function App() {
       onDragEnd={onDragEnd}
       onDragCancel={onDragCancel}
     >
-      <div className="h-screen w-screen flex flex-col p-3 gap-3">
+      <div className="min-h-[100dvh] w-full flex flex-col p-2 md:p-3 gap-2 md:gap-3 md:h-[100dvh]">
         {/* Header */}
-        <header className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-3">
-            <div className="text-4xl animate-bob">🧸</div>
-            <div>
-              <h1 className="font-display text-3xl text-candy-pink leading-none">
+        <header className="flex items-center justify-between gap-2 px-1 md:px-2">
+          <div className="flex items-center gap-2 md:gap-3 min-w-0">
+            <div className="text-3xl md:text-4xl animate-bob shrink-0">🧸</div>
+            <div className="min-w-0">
+              <h1 className="font-display text-xl md:text-3xl text-candy-pink leading-none truncate">
                 The Super Toy Maker
               </h1>
-              <p className="text-xs text-candy-pink/70 font-display">
+              <p className="hidden md:block text-xs text-candy-pink/70 font-display">
                 Pick parts, build, name & make magic ✨
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="hidden md:flex gap-1 text-2xl mr-2">
+          <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
+            <div className="hidden lg:flex gap-1 text-2xl mr-2">
               <span className="animate-sparkle">✨</span>
               <span className="animate-sparkle [animation-delay:0.4s]">⭐</span>
               <span className="animate-sparkle [animation-delay:0.8s]">💫</span>
@@ -126,7 +126,7 @@ export default function App() {
                 setAiOpen(true);
               }}
               title="Type a name and AI will draw your toy!"
-              className="px-4 py-2 rounded-full bg-candy-yellow text-amber-900 border-4 border-amber-700/40 font-display shadow-pop hover:scale-105 active:scale-95 transition animate-wiggle"
+              className="hidden md:inline-flex px-4 py-2 rounded-full bg-candy-yellow text-amber-900 border-4 border-amber-700/40 font-display shadow-pop hover:scale-105 active:scale-95 transition animate-wiggle"
             >
               🎲 Surprise Me!
             </button>
@@ -140,23 +140,29 @@ export default function App() {
           </div>
         </header>
 
-        {/* 3-panel layout */}
-        <main className="flex-1 grid grid-cols-1 md:grid-cols-[280px_1fr_320px] gap-3 min-h-0 overflow-auto md:overflow-hidden">
-          <section className="min-h-0 hidden md:block">
-            <AssetsPanel />
-          </section>
-          <section className="min-h-[420px] md:min-h-0">
+        {/* Mobile-only big Surprise Me CTA */}
+        <button
+          onClick={() => {
+            sounds.giggle();
+            setAiOpen(true);
+          }}
+          className="md:hidden w-full py-3 rounded-2xl bg-candy-yellow text-amber-900 border-4 border-amber-700/40 font-display text-lg shadow-pop active:scale-95 transition animate-wiggle"
+        >
+          🎲 Surprise Me with AI!
+        </button>
+
+        {/* Layout: stacked on mobile (natural page scroll), 3-col grid on md+ */}
+        <main className="flex flex-col gap-2 md:gap-3 md:flex-1 md:grid md:grid-cols-[280px_1fr_320px] md:min-h-0 md:overflow-hidden">
+          {/* Machine first on mobile (most important), middle column on desktop */}
+          <section className="order-1 md:order-2 md:min-h-0">
             <Machine />
           </section>
-          <section className="min-h-0 hidden md:block">
-            <Output />
-          </section>
-
-          {/* Mobile fallbacks */}
-          <section className="md:hidden h-72">
+          {/* Parts shelf */}
+          <section className="order-2 md:order-1 md:min-h-0 max-h-[60dvh] md:max-h-none">
             <AssetsPanel />
           </section>
-          <section className="md:hidden h-[28rem]">
+          {/* Output / library */}
+          <section className="order-3 md:order-3 md:min-h-0">
             <Output />
           </section>
         </main>

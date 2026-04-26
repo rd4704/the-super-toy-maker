@@ -65,8 +65,8 @@ export function Output() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-white/70 backdrop-blur-md rounded-3xl border-4 border-candy-green shadow-toy p-3 overflow-hidden">
-      <h2 className="font-display text-2xl text-candy-green text-center mb-2">
+    <div className="h-full flex flex-col bg-white/70 backdrop-blur-md rounded-3xl border-4 border-candy-green shadow-toy p-3 overflow-hidden min-h-0">
+      <h2 className="font-display text-xl md:text-2xl text-candy-green text-center mb-2">
         🌟 Your Toy
       </h2>
 
